@@ -3,23 +3,15 @@
 #include <GL/glew.h>
 #include "shader.h"
 #include "buffer.h"
+#include "matrix.h"
 
-int main(int argc, char **argv)
+static SDL_Window *window;
+static SDL_GLContext gl;
+static GLuint vao;
+
+void init_video()
 {
-	SDL_Window *window;
-	SDL_GLContext gl;
-	int running = 1;
-	SDL_Event event;
-	Shader *shader;
-	Buffer *buffer;
-	GLint vert_pos;
-	GLfloat tria[] = {0,0, 1,0, 0,1};
-	GLuint vao;
-	
-	printf("voxel-game\n");
-	
 	SDL_Init(SDL_INIT_VIDEO);
-	
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
@@ -32,20 +24,42 @@ int main(int argc, char **argv)
 	);
 	
 	gl = SDL_GL_CreateContext(window);
-		
+	
 	glewInit();
 	
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 	
-	glClearColor(1, 0, 0, 1);
+	glClearColor(0, 0, 0, 1);
+}
+
+void cleanup_video()
+{
+	SDL_GL_DeleteContext(gl);
+	SDL_DestroyWindow(window);
+	SDL_Quit();
+}
+
+int main(int argc, char **argv)
+{
+	int running = 1;
+	SDL_Event event;
+	Shader *shader;
+	Buffer *buffer;
+	GLfloat tria[] = {0,0, 1,0, 0,1};
+	GLfloat proj[16];
+	GLfloat view[16];
+	
+	printf("voxel-game\n");
+	
+	init_video();
 	
 	shader = create_shader_from_files("vert.glsl", "frag.glsl");
-	vert_pos = glGetAttribLocation(shader->prog, "vert_pos");
-	buffer = create_buffer();
-	buffer->data = tria;
-	buffer->size = sizeof(tria);
-	update_buffer(buffer);
+	buffer = create_buffer(tria, sizeof(tria));
+	
+	perspective(proj, 90, 800.0 / 600, 0.1, 1000);
+	identity(view);
+	translate(view, 0, 0, -2);
 	
 	while(running) {
 		while(SDL_PollEvent(&event)) {
@@ -59,6 +73,7 @@ int main(int argc, char **argv)
 						Sint32 h = event.window.data2;
 						
 						glViewport(0, 0, w, h);
+						perspective(proj, 90, (float)w / h, 0.1, 1000);
 					}
 				case SDL_KEYDOWN:
 					switch(event.key.keysym.sym) {
@@ -76,22 +91,19 @@ int main(int argc, char **argv)
 			}
 		}
 		
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		glUseProgram(shader->prog);
-		
-		glEnableVertexAttribArray(vert_pos);
-		glBindBuffer(GL_ARRAY_BUFFER, buffer->buf);
-		glVertexAttribPointer(vert_pos, 2, GL_FLOAT, GL_FALSE, 0, 0);
+		use_shader(shader);
+		assign_matrix("proj", proj);
+		assign_matrix("view", view);
+		assign_attrib("vert_pos", buffer, 2, 0, 0);
 		
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		
 		SDL_GL_SwapWindow(window);
 	}
 	
-	SDL_GL_DeleteContext(gl);
-	SDL_DestroyWindow(window);
-	SDL_Quit();
+	cleanup_video();
 	
 	return 0;
 }

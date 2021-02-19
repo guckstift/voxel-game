@@ -4,6 +4,8 @@
 #include "file.h"
 #include "error.h"
 
+static Shader *cur = 0;
+
 Shader *create_shader(const char *vert_src, const char *frag_src)
 {
 	Shader *shader = create(Shader);
@@ -77,4 +79,26 @@ Shader *create_shader_from_files(const char *vert_file_name, const char *frag_fi
 	dealloc(frag_src);
 	
 	return shader;
+}
+
+void use_shader(Shader *shader)
+{
+	cur = shader;
+	glUseProgram(cur->prog);
+}
+
+void assign_attrib(const GLchar *name, Buffer *buf, GLint size, GLsizei stride, const void *offset)
+{
+	GLint loca = glGetAttribLocation(cur->prog, name);
+	
+	glEnableVertexAttribArray(loca);
+	glBindBuffer(GL_ARRAY_BUFFER, buf->buf);
+	glVertexAttribPointer(loca, size, GL_FLOAT, GL_FALSE, stride, offset);
+}
+
+void assign_matrix(const GLchar *name, const GLfloat *mat)
+{
+	GLint loca = glGetUniformLocation(cur->prog, name);
+	
+	glUniformMatrix4fv(loca, 1, GL_FALSE, mat);
 }

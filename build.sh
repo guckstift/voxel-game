@@ -7,4 +7,5 @@ gcc -o voxel-game -ansi -pedantic \
 	file.c \
 	error.c \
 	buffer.c \
-	-lSDL2 -lGLEW -lGL \
+	matrix.c \
+	-lSDL2 -lGLEW -lGL -lm \

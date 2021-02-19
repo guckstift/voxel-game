@@ -9,7 +9,7 @@ typedef struct {
 	GLsizeiptr size;
 } Buffer;
 
-Buffer *create_buffer();
+Buffer *create_buffer(void *data, GLsizeiptr size);
 void update_buffer(Buffer *buf);
 
 #endif

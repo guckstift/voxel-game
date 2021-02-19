@@ -1,13 +1,14 @@
 #include "buffer.h"
 #include "memory.h"
 
-Buffer *create_buffer()
+Buffer *create_buffer(void *data, GLsizeiptr size)
 {
 	Buffer *buffer = create(Buffer);
 	
 	glGenBuffers(1, &buffer->buf);
-	buffer->data = 0;
-	buffer->size = 0;
+	buffer->data = data;
+	buffer->size = size;
+	update_buffer(buffer);
 	
 	return buffer;
 }
