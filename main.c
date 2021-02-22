@@ -4,6 +4,7 @@
 #include "shader.h"
 #include "buffer.h"
 #include "matrix.h"
+#include "mathx.h"
 
 static SDL_Window *window;
 static SDL_GLContext gl;
@@ -57,7 +58,7 @@ int main(int argc, char **argv)
 	shader = create_shader_from_files("vert.glsl", "frag.glsl");
 	buffer = create_buffer(tria, sizeof(tria));
 	
-	perspective(proj, 90, 800.0 / 600, 0.1, 1000);
+	perspective(proj, radians(90), 800.0 / 600, 0.1, 1000);
 	identity(view);
 	translate(view, 0, 0, -2);
 	

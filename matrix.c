@@ -2,8 +2,6 @@
 #include <string.h>
 #include "matrix.h"
 
-#define PI 3.141592653589793
-
 void identity(GLfloat *mat)
 {
 	memset(mat, 0, sizeof(GLfloat) * 16);
@@ -24,7 +22,7 @@ void translate(GLfloat *m, GLfloat x, GLfloat y, GLfloat z)
 
 void perspective(GLfloat *mat, GLfloat fovy, GLfloat aspect, GLfloat near, GLfloat far)
 {
-	GLfloat fy = 1.0 / tan(fovy * PI / 180.0 / 2.0);
+	GLfloat fy = 1.0 / tan(fovy / 2);
 	GLfloat fx = fy / aspect;
 	GLfloat nf = 1.0 / (near - far);
 	GLfloat a  = (near + far) * nf;
