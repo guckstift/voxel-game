@@ -5,10 +5,16 @@
 #include "buffer.h"
 #include "matrix.h"
 #include "mathx.h"
+#include "camera.h"
+#include "controller.h"
 
-static SDL_Window *window;
+static SDL_Window *window = 0;
 static SDL_GLContext gl;
 static GLuint vao;
+static Camera *cam;
+static Shader shader;
+static Buffer buffer;
+static Controller *con;
 
 void init_video()
 {
@@ -26,6 +32,8 @@ void init_video()
 	
 	gl = SDL_GL_CreateContext(window);
 	
+	SDL_GL_SetSwapInterval(1);
+	
 	glewInit();
 	
 	glGenVertexArrays(1, &vao);
@@ -41,65 +49,62 @@ void cleanup_video()
 	SDL_Quit();
 }
 
+void on_frame(double delta)
+{
+	update_controller(con, delta);
+	update_camera(cam);
+	
+	use_shader(shader);
+	
+	assign_matrix("proj", cam->proj);
+	assign_matrix("view", cam->view);
+	assign_attrib("vert_pos", buffer, 2, 0, 0);
+	
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
 int main(int argc, char **argv)
 {
-	int running = 1;
-	SDL_Event event;
-	Shader *shader;
-	Buffer *buffer;
-	GLfloat tria[] = {0,0, 1,0, 0,1};
-	GLfloat proj[16];
-	GLfloat view[16];
-	
 	printf("voxel-game\n");
-	
 	init_video();
 	
 	shader = create_shader_from_files("vert.glsl", "frag.glsl");
+	GLfloat tria[] = {0,0, 1,0, 0,1};
 	buffer = create_buffer(tria, sizeof(tria));
 	
-	perspective(proj, radians(90), 800.0 / 600, 0.1, 1000);
-	identity(view);
-	translate(view, 0, 0, -2);
+	cam = create_camera();
+	cam->obj.pos[2] = 2;
+	update_camera(cam);
+	
+	con = create_controller(cam);
+	
+	int running = 1;
+	SDL_Event event;
+	Uint64 freq = SDL_GetPerformanceFrequency();
+	double last = 0, now = 0, delta = 0;
 	
 	while(running) {
+		now = SDL_GetPerformanceCounter() / (double)freq;
+		
+		if(last) {
+			delta = now - last;
+		}
+		else {
+			delta = 0;
+		}
+		
+		last = now;
+		
 		while(SDL_PollEvent(&event)) {
-			switch(event.type) {
-				case SDL_QUIT:
-					running = 0;
-					break;
-				case SDL_WINDOWEVENT:
-					if(event.window.event == SDL_WINDOWEVENT_RESIZED) {
-						Sint32 w = event.window.data1;
-						Sint32 h = event.window.data2;
-						
-						glViewport(0, 0, w, h);
-						perspective(proj, 90, (float)w / h, 0.1, 1000);
-					}
-				case SDL_KEYDOWN:
-					switch(event.key.keysym.sym) {
-						case SDLK_LEFT:
-							break;
-						case SDLK_RIGHT:
-							break;
-						case SDLK_UP:
-							break;
-						case SDLK_DOWN:
-							break;
-					}
-					
-					break;
+			if(!handle_event(con, &event)) {
+				running = 0;
+				break;
 			}
 		}
 		
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		use_shader(shader);
-		assign_matrix("proj", proj);
-		assign_matrix("view", view);
-		assign_attrib("vert_pos", buffer, 2, 0, 0);
-		
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		on_frame(delta);
 		
 		SDL_GL_SwapWindow(window);
 	}

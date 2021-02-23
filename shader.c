@@ -4,23 +4,17 @@
 #include "file.h"
 #include "error.h"
 
-static Shader *cur = 0;
+static Shader cur = 0;
 
-Shader *create_shader(const char *vert_src, const char *frag_src)
+Shader create_shader(const char *vert_src, const char *frag_src)
 {
-	Shader *shader = create(Shader);
+	Shader shader = glCreateProgram();
 	GLuint vert = glCreateShader(GL_VERTEX_SHADER);
 	GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
 	const GLchar **vert_src_ptr = &vert_src;
 	const GLchar **frag_src_ptr = &frag_src;
-	GLint vert_src_len[1];
-	GLint frag_src_len[1];
-	GLint status;
-	
-	vert_src_len[0] = strlen(vert_src);
-	frag_src_len[0] = strlen(frag_src);
-	
-	shader->prog = glCreateProgram();
+	GLint vert_src_len[] = {strlen(vert_src)};
+	GLint frag_src_len[] = {strlen(frag_src)};
 	
 	glShaderSource(vert, 1, vert_src_ptr, vert_src_len);
 	glShaderSource(frag, 1, frag_src_ptr, frag_src_len);
@@ -28,18 +22,19 @@ Shader *create_shader(const char *vert_src, const char *frag_src)
 	glCompileShader(vert);
 	glCompileShader(frag);
 	
-	glAttachShader(shader->prog, vert);
-	glAttachShader(shader->prog, frag);
+	glAttachShader(shader, vert);
+	glAttachShader(shader, frag);
 	
-	glLinkProgram(shader->prog);
+	glLinkProgram(shader);
+	
+	GLint status;
 	
 	glGetShaderiv(vert, GL_COMPILE_STATUS, &status);
 	
 	if(status == GL_FALSE) {
-		GLchar *info_log;
-		
 		glGetShaderiv(vert, GL_INFO_LOG_LENGTH, &status);
-		info_log = alloc(status);
+		
+		GLchar *info_log = alloc(status);
 		glGetShaderInfoLog(vert, status, 0, info_log);
 		error("could not compile vertex shader code:\n%s", info_log);
 	}
@@ -47,33 +42,31 @@ Shader *create_shader(const char *vert_src, const char *frag_src)
 	glGetShaderiv(frag, GL_COMPILE_STATUS, &status);
 	
 	if(status == GL_FALSE) {
-		GLchar *info_log;
-		
 		glGetShaderiv(frag, GL_INFO_LOG_LENGTH, &status);
-		info_log = alloc(status);
+		
+		GLchar *info_log = alloc(status);
 		glGetShaderInfoLog(frag, status, 0, info_log);
 		error("could not compile fragment shader code:\n%s", info_log);
 	}
 	
-	glGetProgramiv(shader->prog, GL_LINK_STATUS, &status);
+	glGetProgramiv(shader, GL_LINK_STATUS, &status);
 	
 	if(status == GL_FALSE) {
-		GLchar *info_log;
+		glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &status);
 		
-		glGetProgramiv(shader->prog, GL_INFO_LOG_LENGTH, &status);
-		info_log = alloc(status);
-		glGetProgramInfoLog(shader->prog, status, 0, info_log);
+		GLchar *info_log = alloc(status);
+		glGetProgramInfoLog(shader, status, 0, info_log);
 		error("could not link shader program:\n%s", info_log);
 	}
 	
 	return shader;
 }
 
-Shader *create_shader_from_files(const char *vert_file_name, const char *frag_file_name)
+Shader create_shader_from_files(const char *vert_file_name, const char *frag_file_name)
 {
 	char *vert_src = read_file(vert_file_name);
 	char *frag_src = read_file(frag_file_name);
-	Shader *shader = create_shader(vert_src, frag_src);
+	Shader shader = create_shader(vert_src, frag_src);
 	
 	dealloc(vert_src);
 	dealloc(frag_src);
@@ -81,24 +74,24 @@ Shader *create_shader_from_files(const char *vert_file_name, const char *frag_fi
 	return shader;
 }
 
-void use_shader(Shader *shader)
+void use_shader(Shader shader)
 {
 	cur = shader;
-	glUseProgram(cur->prog);
+	glUseProgram(cur);
 }
 
-void assign_attrib(const GLchar *name, Buffer *buf, GLint size, GLsizei stride, const void *offset)
+void assign_attrib(const GLchar *name, Buffer buf, GLint size, GLsizei stride, const void *offset)
 {
-	GLint loca = glGetAttribLocation(cur->prog, name);
+	GLint loca = glGetAttribLocation(cur, name);
 	
 	glEnableVertexAttribArray(loca);
-	glBindBuffer(GL_ARRAY_BUFFER, buf->buf);
+	glBindBuffer(GL_ARRAY_BUFFER, buf);
 	glVertexAttribPointer(loca, size, GL_FLOAT, GL_FALSE, stride, offset);
 }
 
 void assign_matrix(const GLchar *name, const GLfloat *mat)
 {
-	GLint loca = glGetUniformLocation(cur->prog, name);
+	GLint loca = glGetUniformLocation(cur, name);
 	
 	glUniformMatrix4fv(loca, 1, GL_FALSE, mat);
 }

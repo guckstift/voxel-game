@@ -3,13 +3,9 @@
 
 #include <GL/glew.h>
 
-typedef struct {
-	GLuint buf;
-	void *data;
-	GLsizeiptr size;
-} Buffer;
+typedef GLuint Buffer;
 
-Buffer *create_buffer(void *data, GLsizeiptr size);
-void update_buffer(Buffer *buf);
+Buffer create_buffer(void *data, GLsizeiptr size);
+void update_buffer(Buffer buf, void *data, GLsizeiptr size);
 
 #endif
